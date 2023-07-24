@@ -52,6 +52,10 @@
  *
  */
 
+#ifndef _STRING_H_
+#include <string.h>
+#endif
+
 #ifndef __PT_H__
 #define __PT_H__
 
