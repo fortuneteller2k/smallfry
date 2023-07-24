@@ -17,7 +17,8 @@
             cmake
             python3
             gnumake
-            gcc-arm-embedded;
+            gcc-arm-embedded
+            clang-tools_16;
 
           inherit (self'.packages) pico-sdk-full;
         };
