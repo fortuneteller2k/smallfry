@@ -12,12 +12,9 @@ set(CMAKE_C_STANDARD 23)
 pico_sdk_init()
 
 add_executable(smallfry src/smallfry.c)
-target_sources(smallfry PRIVATE src/smallfry.c)
+target_sources(smallfry PRIVATE src/smallfry.c src/mfrc522.c src/mfrc522.h)
 
-pico_generate_pio_header(smallfry
-    ${CMAKE_CURRENT_LIST_DIR}/src/ws2812.pio
-    ${CMAKE_CURRENT_LIST_DIR}/src/wave.pio
-)
+pico_generate_pio_header(smallfry ${CMAKE_CURRENT_LIST_DIR}/src/ws2812.pio)
 
 pico_enable_stdio_usb(smallfry 1)
 pico_enable_stdio_uart(smallfry 1)
@@ -27,6 +24,8 @@ target_link_libraries(smallfry
     pico_multicore
     hardware_pio
     hardware_pwm
+    hardware_i2c
+    hardware_spi
     pico_bootsel_via_double_reset
 )
 
