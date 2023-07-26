@@ -73,7 +73,7 @@ std::vector<uint8_t> MFRC522::read_register(Register reg, size_t size) {
   return data;
 }
 
-void MFRC522::print_version() {
+void MFRC522::version() {
   uint8_t version = read_register(Version);
 
   switch (version) {
@@ -112,7 +112,7 @@ bool MFRC522::self_test() {
   write_register(AutoTest, (uint8_t)0x0);
   write_register(Command, Idle);
 
-  print_version();
+  version();
 
   // read 64 bytes off the fifo buffer
   std::vector<uint8_t> buf = read_register(FIFOData, 64);
@@ -136,4 +136,13 @@ bool MFRC522::self_test() {
   printf("\n");
 
   return std::equal(buf.begin(), buf.end(), mfrc522_v2_test_buf.begin());
+}
+
+void MFRC522::toggle_antenna(bool value) {
+  uint8_t tx_control = read_register(TxControl);
+
+  if (value)
+    if ((tx_control & 0x03) != 0x03) write_register(TxControl, tx_control | 0x03);
+  else
+    write_register(TxControl, tx_control & (~0x03));
 }

@@ -90,8 +90,11 @@ class MFRC522 {
   uint8_t read_register(Register reg);
   std::vector<uint8_t> read_register(Register reg, size_t size);
   void chip_select(bool value);
-  void print_version();
+  void version();
   bool self_test();
+  void toggle_antenna(bool value);
+  uint8_t antenna_gain();
+  uint8_t antenna_gain(uint8_t value);
 };
 
 const std::array<uint8_t, 64> mfrc522_v2_test_buf{
