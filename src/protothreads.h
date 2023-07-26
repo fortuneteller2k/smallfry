@@ -175,23 +175,23 @@ typedef unsigned short lc_t;
 #define __LC_ADDRLABELS_H__
 
 /** \hideinitializer */
-typedef void *lc_t;
+typedef void* lc_t;
 
 #define LC_INIT(s) s = NULL
 
-#define LC_RESUME(s)                                                           \
-  do {                                                                         \
-    if (s != NULL) {                                                           \
-      goto *s;                                                                 \
-    }                                                                          \
+#define LC_RESUME(s) \
+  do {               \
+    if (s != NULL) { \
+      goto* s;       \
+    }                \
   } while (0)
 
 #define LC_CONCAT2(s1, s2) s1##s2
 #define LC_CONCAT(s1, s2) LC_CONCAT2(s1, s2)
 
-#define LC_SET(s)                                                              \
-  do {                                                                         \
-    LC_CONCAT(LC_LABEL, __LINE__) : (s) = &&LC_CONCAT(LC_LABEL, __LINE__);     \
+#define LC_SET(s)                                                          \
+  do {                                                                     \
+    LC_CONCAT(LC_LABEL, __LINE__) : (s) = &&LC_CONCAT(LC_LABEL, __LINE__); \
   } while (0)
 
 #define LC_END(s)
@@ -260,9 +260,9 @@ struct pt {
  *
  * \hideinitializer
  */
-#define PT_BEGIN(pt)                                                           \
-  {                                                                            \
-    char PT_YIELD_FLAG = 1;                                                    \
+#define PT_BEGIN(pt)        \
+  {                         \
+    char PT_YIELD_FLAG = 1; \
     LC_RESUME((pt)->lc)
 
 /**
@@ -275,11 +275,11 @@ struct pt {
  *
  * \hideinitializer
  */
-#define PT_END(pt)                                                             \
-  LC_END((pt)->lc);                                                            \
-  PT_YIELD_FLAG = 0;                                                           \
-  PT_INIT(pt);                                                                 \
-  return PT_ENDED;                                                             \
+#define PT_END(pt)   \
+  LC_END((pt)->lc);  \
+  PT_YIELD_FLAG = 0; \
+  PT_INIT(pt);       \
+  return PT_ENDED;   \
   }
 
 /** @} */
@@ -300,12 +300,12 @@ struct pt {
  *
  * \hideinitializer
  */
-#define PT_WAIT_UNTIL(pt, condition)                                           \
-  do {                                                                         \
-    LC_SET((pt)->lc);                                                          \
-    if (!(condition)) {                                                        \
-      return PT_WAITING;                                                       \
-    }                                                                          \
+#define PT_WAIT_UNTIL(pt, condition) \
+  do {                               \
+    LC_SET((pt)->lc);                \
+    if (!(condition)) {              \
+      return PT_WAITING;             \
+    }                                \
   } while (0)
 
 /**
@@ -358,10 +358,10 @@ struct pt {
  *
  * \hideinitializer
  */
-#define PT_SPAWN(pt, child, thread)                                            \
-  do {                                                                         \
-    PT_INIT((child));                                                          \
-    PT_WAIT_THREAD((pt), (thread));                                            \
+#define PT_SPAWN(pt, child, thread) \
+  do {                              \
+    PT_INIT((child));               \
+    PT_WAIT_THREAD((pt), (thread)); \
   } while (0)
 
 /** @} */
@@ -381,10 +381,10 @@ struct pt {
  *
  * \hideinitializer
  */
-#define PT_RESTART(pt)                                                         \
-  do {                                                                         \
-    PT_INIT(pt);                                                               \
-    return PT_WAITING;                                                         \
+#define PT_RESTART(pt) \
+  do {                 \
+    PT_INIT(pt);       \
+    return PT_WAITING; \
   } while (0)
 
 /**
@@ -398,10 +398,10 @@ struct pt {
  *
  * \hideinitializer
  */
-#define PT_EXIT(pt)                                                            \
-  do {                                                                         \
-    PT_INIT(pt);                                                               \
-    return PT_EXITED;                                                          \
+#define PT_EXIT(pt)   \
+  do {                \
+    PT_INIT(pt);      \
+    return PT_EXITED; \
   } while (0)
 
 /** @} */
@@ -443,13 +443,13 @@ struct pt {
  *
  * \hideinitializer
  */
-#define PT_YIELD(pt)                                                           \
-  do {                                                                         \
-    PT_YIELD_FLAG = 0;                                                         \
-    LC_SET((pt)->lc);                                                          \
-    if (PT_YIELD_FLAG == 0) {                                                  \
-      return PT_YIELDED;                                                       \
-    }                                                                          \
+#define PT_YIELD(pt)          \
+  do {                        \
+    PT_YIELD_FLAG = 0;        \
+    LC_SET((pt)->lc);         \
+    if (PT_YIELD_FLAG == 0) { \
+      return PT_YIELDED;      \
+    }                         \
   } while (0)
 
 /**
@@ -464,13 +464,13 @@ struct pt {
  * \hideinitializer
  */
 
-#define PT_YIELD_UNTIL(pt, cond)                                               \
-  do {                                                                         \
-    PT_YIELD_FLAG = 0;                                                         \
-    LC_SET((pt)->lc);                                                          \
-    if ((PT_YIELD_FLAG == 0) || !(cond)) {                                     \
-      return PT_YIELDED;                                                       \
-    }                                                                          \
+#define PT_YIELD_UNTIL(pt, cond)           \
+  do {                                     \
+    PT_YIELD_FLAG = 0;                     \
+    LC_SET((pt)->lc);                      \
+    if ((PT_YIELD_FLAG == 0) || !(cond)) { \
+      return PT_YIELDED;                   \
+    }                                      \
   } while (0)
 
 /** @} */
@@ -521,10 +521,10 @@ struct pt_sem {
  *
  * \hideinitializer
  */
-#define PT_SEM_WAIT(pt, s)                                                     \
-  do {                                                                         \
-    PT_YIELD_UNTIL(pt, (s)->count > 0);                                        \
-    --(s)->count;                                                              \
+#define PT_SEM_WAIT(pt, s)              \
+  do {                                  \
+    PT_YIELD_UNTIL(pt, (s)->count > 0); \
+    --(s)->count;                       \
   } while (0)
 
 /**
@@ -554,11 +554,11 @@ struct pt_sem {
 // max time of about 300,000 years
 // uint64_t time_us_64 (void)
 
-#define PT_YIELD_usec(delay_time)                                              \
-  do {                                                                         \
-    static uint64_t time_thread;                                               \
-    time_thread = time_us_64() + (uint64_t)delay_time;                         \
-    PT_YIELD_UNTIL(pt, (time_us_64() >= time_thread));                         \
+#define PT_YIELD_usec(delay_time)                      \
+  do {                                                 \
+    static uint64_t time_thread;                       \
+    time_thread = time_us_64() + (uint64_t)delay_time; \
+    PT_YIELD_UNTIL(pt, (time_us_64() >= time_thread)); \
   } while (0);
 
 // macro to return system time
@@ -568,10 +568,10 @@ struct pt_sem {
 // attempts to make interval equal to specified value
 #define PT_INTERVAL_INIT() static uint64_t pt_interval_marker
 //
-#define PT_YIELD_INTERVAL(interval_time)                                       \
-  do {                                                                         \
-    PT_YIELD_UNTIL(pt, (time_us_64() >= pt_interval_marker));                  \
-    pt_interval_marker = time_us_64() + (uint64_t)interval_time;               \
+#define PT_YIELD_INTERVAL(interval_time)                         \
+  do {                                                           \
+    PT_YIELD_UNTIL(pt, (time_us_64() >= pt_interval_marker));    \
+    pt_interval_marker = time_us_64() + (uint64_t)interval_time; \
   } while (0);
 //
 // =================================================================
@@ -581,34 +581,34 @@ struct pt_sem {
 // multi-core safe, but is OK one one core
 // The SAFE versions work across cores, but have more overhead
 
-spin_lock_t *sem_lock;
+spin_lock_t* sem_lock;
 
-#define PT_SEM_SAFE_INIT(s, c)                                                 \
-  do {                                                                         \
-    sem_lock = spin_lock_init(25);                                             \
-    spin_lock_unsafe_blocking(sem_lock);                                       \
-    (s)->count = c;                                                            \
-    spin_unlock_unsafe(sem_lock);                                              \
+#define PT_SEM_SAFE_INIT(s, c)           \
+  do {                                   \
+    sem_lock = spin_lock_init(25);       \
+    spin_lock_unsafe_blocking(sem_lock); \
+    (s)->count = c;                      \
+    spin_unlock_unsafe(sem_lock);        \
   } while (0)
 
-#define PT_SEM_SAFE_WAIT(pt, s)                                                \
-  do {                                                                         \
-    spin_lock_unsafe_blocking(sem_lock);                                       \
-    PT_YIELD_FLAG = 0;                                                         \
-    LC_SET((pt)->lc);                                                          \
-    if ((PT_YIELD_FLAG == 0) || !((s)->count > 0)) {                           \
-      spin_unlock_unsafe(sem_lock);                                            \
-      return PT_YIELDED;                                                       \
-    }                                                                          \
-    --(s)->count;                                                              \
-    spin_unlock_unsafe(sem_lock);                                              \
+#define PT_SEM_SAFE_WAIT(pt, s)                      \
+  do {                                               \
+    spin_lock_unsafe_blocking(sem_lock);             \
+    PT_YIELD_FLAG = 0;                               \
+    LC_SET((pt)->lc);                                \
+    if ((PT_YIELD_FLAG == 0) || !((s)->count > 0)) { \
+      spin_unlock_unsafe(sem_lock);                  \
+      return PT_YIELDED;                             \
+    }                                                \
+    --(s)->count;                                    \
+    spin_unlock_unsafe(sem_lock);                    \
   } while (0)
 
-#define PT_SEM_SAFE_SIGNAL(pt, s)                                              \
-  do {                                                                         \
-    spin_lock_unsafe_blocking(sem_lock);                                       \
-    ++(s)->count;                                                              \
-    spin_unlock_unsafe(sem_lock);                                              \
+#define PT_SEM_SAFE_SIGNAL(pt, s)        \
+  do {                                   \
+    spin_lock_unsafe_blocking(sem_lock); \
+    ++(s)->count;                        \
+    spin_unlock_unsafe(sem_lock);        \
   } while (0)
 
 // ==================================================================
@@ -617,58 +617,57 @@ spin_lock_t *sem_lock;
 // a non-counting hardware spinlock to force core-safe signalling
 #define UNLOCKED 0
 #define LOCKED 1
-spin_lock_t *lock_lock;
+spin_lock_t* lock_lock;
 // general pattern will be to lock lock_lock
 // do specific lock operation (on another spin_lock)
 // unlock lock_lock
 // NOTE vaild lock_num are from 26-31 total of SIX hardware locks!
 
-#define PT_LOCK_INIT(s, lock_num, lock_state)                                  \
-  do {                                                                         \
-    lock_lock = spin_lock_init(24);                                            \
-    spin_lock_unsafe_blocking(lock_lock);                                      \
-    s = spin_lock_init((uint)lock_num);                                        \
-    if (lock_state)                                                            \
-      spin_lock_unsafe_blocking(s);                                            \
-    spin_unlock_unsafe(lock_lock);                                             \
+#define PT_LOCK_INIT(s, lock_num, lock_state)     \
+  do {                                            \
+    lock_lock = spin_lock_init(24);               \
+    spin_lock_unsafe_blocking(lock_lock);         \
+    s = spin_lock_init((uint)lock_num);           \
+    if (lock_state) spin_lock_unsafe_blocking(s); \
+    spin_unlock_unsafe(lock_lock);                \
   } while (0)
 
-#define PT_LOCK_WAIT(pt, s)                                                    \
-  do {                                                                         \
-    spin_lock_unsafe_blocking(lock_lock);                                      \
-    PT_YIELD_FLAG = 0;                                                         \
-    LC_SET((pt)->lc);                                                          \
-    if ((PT_YIELD_FLAG == 0) || !(is_spin_locked(s) == false)) {               \
-      spin_unlock_unsafe(lock_lock);                                           \
-      return PT_YIELDED;                                                       \
-    }                                                                          \
-    spin_lock_unsafe_blocking(s);                                              \
-    spin_unlock_unsafe(lock_lock);                                             \
+#define PT_LOCK_WAIT(pt, s)                                      \
+  do {                                                           \
+    spin_lock_unsafe_blocking(lock_lock);                        \
+    PT_YIELD_FLAG = 0;                                           \
+    LC_SET((pt)->lc);                                            \
+    if ((PT_YIELD_FLAG == 0) || !(is_spin_locked(s) == false)) { \
+      spin_unlock_unsafe(lock_lock);                             \
+      return PT_YIELDED;                                         \
+    }                                                            \
+    spin_lock_unsafe_blocking(s);                                \
+    spin_unlock_unsafe(lock_lock);                               \
   } while (0)
 
-#define PT_LOCK_RELEASE(s)                                                     \
-  do {                                                                         \
-    spin_unlock_unsafe(s);                                                     \
+#define PT_LOCK_RELEASE(s) \
+  do {                     \
+    spin_unlock_unsafe(s); \
   } while (0)
 
 //====================================================================
 // Multicore communication via FIFO
-#define PT_FIFO_WRITE(data)                                                    \
-  do {                                                                         \
-    PT_YIELD_UNTIL(pt, multicore_fifo_wready() == true);                       \
-    multicore_fifo_push_blocking(data);                                        \
+#define PT_FIFO_WRITE(data)                              \
+  do {                                                   \
+    PT_YIELD_UNTIL(pt, multicore_fifo_wready() == true); \
+    multicore_fifo_push_blocking(data);                  \
   } while (0)
 
-#define PT_FIFO_READ(fifo_out)                                                 \
-  do {                                                                         \
-    PT_YIELD_UNTIL(pt, multicore_fifo_rvalid() == true);                       \
-    fifo_out = multicore_fifo_pop_blocking();                                  \
+#define PT_FIFO_READ(fifo_out)                           \
+  do {                                                   \
+    PT_YIELD_UNTIL(pt, multicore_fifo_rvalid() == true); \
+    fifo_out = multicore_fifo_pop_blocking();            \
   } while (0)
 
 // clears OUTGOING FIFO for urrent core
-#define PT_FIFO_FLUSH                                                          \
-  do {                                                                         \
-    multicore_fifo_drain();                                                    \
+#define PT_FIFO_FLUSH       \
+  do {                      \
+    multicore_fifo_drain(); \
   } while (0)
 
 //====================================================================
@@ -687,9 +686,9 @@ int pt_task_count1 = 0;
 
 // The task structure
 struct ptx {
-  struct pt pt;              // thread context
-  int num;                   // thread number
-  char (*pf)(struct pt *pt); // pointer to thread function
+  struct pt pt;               // thread context
+  int num;                    // thread number
+  char (*pf)(struct pt* pt);  // pointer to thread function
 };
 
 // === extended structure for scheduler ===============
@@ -703,10 +702,10 @@ static struct ptx pt_thread_list1[MAX_THREADS];
 // and the license above
 // add an entry to the thread list
 // struct ptx *pt_add( char (*pf)(struct pt *pt), int rate) {
-int pt_add(char (*pf)(struct pt *pt)) {
+int pt_add(char (*pf)(struct pt* pt)) {
   if (pt_task_count < (MAX_THREADS)) {
     // get the current thread table entry
-    struct ptx *ptx = &pt_thread_list[pt_task_count];
+    struct ptx* ptx = &pt_thread_list[pt_task_count];
     // enter the tak data into the thread table
     ptx->num = pt_task_count;
     // function pointer
@@ -723,10 +722,10 @@ int pt_add(char (*pf)(struct pt *pt)) {
 
 // core 1 -- add an entry to the thread list
 // struct ptx *pt_add( char (*pf)(struct pt *pt), int rate) {
-int pt_add1(char (*pf)(struct pt *pt)) {
+int pt_add1(char (*pf)(struct pt* pt)) {
   if (pt_task_count1 < (MAX_THREADS)) {
     // get the current thread table entry
-    struct ptx *ptx = &pt_thread_list1[pt_task_count1];
+    struct ptx* ptx = &pt_thread_list1[pt_task_count1];
     // enter the tak data into the thread table
     ptx->num = pt_task_count1;
     // function pointer
@@ -773,7 +772,7 @@ SOFTWARE.
 #define SCHED_RATE 1
 int pt_sched_method = SCHED_ROUND_ROBIN;
 
-static PT_THREAD(protothread_sched(struct pt *pt)) {
+static PT_THREAD(protothread_sched(struct pt* pt)) {
   PT_BEGIN(pt);
   static int i, rate;
 
@@ -781,7 +780,7 @@ static PT_THREAD(protothread_sched(struct pt *pt)) {
     while (1) {
       // test stupid round-robin
       // on all defined threads
-      struct ptx *ptx = &pt_thread_list[0];
+      struct ptx* ptx = &pt_thread_list[0];
       // step thru all defined threads
       // -- loop can have more than one initialization or increment/decrement,
       // -- separated using comma operator. But it can have only one condition.
@@ -791,15 +790,15 @@ static PT_THREAD(protothread_sched(struct pt *pt)) {
       }
       // Never yields!
       // NEVER exit while!
-    } // END WHILE(1)
-  }   // end if (pt_sched_method==RR)
+    }  // END WHILE(1)
+  }    // end if (pt_sched_method==RR)
 
   PT_END(pt);
-} // scheduler thread
+}  // scheduler thread
 
 // ================================================
 // === second core scheduler
-static PT_THREAD(protothread_sched1(struct pt *pt)) {
+static PT_THREAD(protothread_sched1(struct pt* pt)) {
   PT_BEGIN(pt);
 
   static int i, rate;
@@ -808,7 +807,7 @@ static PT_THREAD(protothread_sched1(struct pt *pt)) {
     while (1) {
       // test stupid round-robin
       // on all defined threads
-      struct ptx *ptx = &pt_thread_list1[0];
+      struct ptx* ptx = &pt_thread_list1[0];
       // step thru all defined threads
       // -- loop can have more than one initialization or increment/decrement,
       // -- separated using comma operator. But it can have only one condition.
@@ -818,33 +817,33 @@ static PT_THREAD(protothread_sched1(struct pt *pt)) {
       }
       // Never yields!
       // NEVER exit while!
-    } // END WHILE(1)
-  }   // end if(pt_sched_method==SCHED_ROUND_ROBIN)
+    }  // END WHILE(1)
+  }    // end if(pt_sched_method==SCHED_ROUND_ROBIN)
 
   PT_END(pt);
-} // scheduler1 thread
+}  // scheduler1 thread
 
 // ========================================================
 // === package the schedulers =============================
-#define pt_schedule_start                                                      \
-  do {                                                                         \
-    if (get_core_num() == 1) {                                                 \
-      PT_INIT(&pt_sched1);                                                     \
-      PT_SCHEDULE(protothread_sched1(&pt_sched1));                             \
-    } else {                                                                   \
-      PT_INIT(&pt_sched);                                                      \
-      PT_SCHEDULE(protothread_sched(&pt_sched));                               \
-    }                                                                          \
+#define pt_schedule_start                          \
+  do {                                             \
+    if (get_core_num() == 1) {                     \
+      PT_INIT(&pt_sched1);                         \
+      PT_SCHEDULE(protothread_sched1(&pt_sched1)); \
+    } else {                                       \
+      PT_INIT(&pt_sched);                          \
+      PT_SCHEDULE(protothread_sched(&pt_sched));   \
+    }                                              \
   } while (0)
 
 // === package the add thread ==========================
-#define pt_add_thread(thread_name)                                             \
-  do {                                                                         \
-    if (get_core_num() == 1) {                                                 \
-      pt_add1(thread_name);                                                    \
-    } else {                                                                   \
-      pt_add(thread_name);                                                     \
-    }                                                                          \
+#define pt_add_thread(thread_name) \
+  do {                             \
+    if (get_core_num() == 1) {     \
+      pt_add1(thread_name);        \
+    } else {                       \
+      pt_add(thread_name);         \
+    }                              \
   } while (0)
 
 // === serial input thread ================================
@@ -857,9 +856,9 @@ static struct pt pt_serialin, pt_serialout;
 // uart
 #define UART_ID uart0
 //
-#define pt_backspace 0x7f // make sure your backspace matches this!
+#define pt_backspace 0x7f  // make sure your backspace matches this!
 //
-static PT_THREAD(pt_serialin_polled(struct pt *pt)) {
+static PT_THREAD(pt_serialin_polled(struct pt* pt)) {
   PT_BEGIN(pt);
   static uint8_t ch;
   static int pt_current_char_count;
@@ -905,16 +904,16 @@ static PT_THREAD(pt_serialin_polled(struct pt *pt)) {
       // build the output string
       pt_serial_in_buffer[pt_current_char_count++] = ch;
     }
-  } // END WHILe
+  }  // END WHILe
   // kill this input thread, to allow spawning thread to execute
   PT_EXIT(pt);
   PT_END(pt);
-} // serial input thread
+}  // serial input thread
 
 // ================================================================
 // === serial output thread
 //
-int pt_serialout_polled(struct pt *pt) {
+int pt_serialout_polled(struct pt* pt) {
   static int num_send_chars;
   PT_BEGIN(pt);
   num_send_chars = 0;
@@ -930,13 +929,13 @@ int pt_serialout_polled(struct pt *pt) {
 }
 // ================================================================
 // package the spawn read/write macros to make them look better
-#define serial_write                                                           \
-  do {                                                                         \
-    PT_SPAWN(pt, &pt_serialout, pt_serialout_polled(&pt_serialout));           \
+#define serial_write                                                 \
+  do {                                                               \
+    PT_SPAWN(pt, &pt_serialout, pt_serialout_polled(&pt_serialout)); \
   } while (0)
-#define serial_read                                                            \
-  do {                                                                         \
-    PT_SPAWN(pt, &pt_serialin, pt_serialin_polled(&pt_serialin));              \
+#define serial_read                                               \
+  do {                                                            \
+    PT_SPAWN(pt, &pt_serialin, pt_serialin_polled(&pt_serialin)); \
   } while (0)
 //
 // ======

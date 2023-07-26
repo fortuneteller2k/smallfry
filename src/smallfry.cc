@@ -26,8 +26,8 @@ extern "C" {
 #include "ws2812.pio.h"
 }
 
-#include "rgb8.hh"
 #include "mfrc522.hh"
+#include "rgb8.hh"
 
 #define OVERCLOCK_273_MHZ true
 #define UNDERCLOCK_18_MHZ true
@@ -48,7 +48,7 @@ void pwm_isr_on_wrap() {
   pwm_set_gpio_level(PICO_DEFAULT_LED_PIN, duty);
 }
 
-static PT_THREAD(pt_pwm(struct pt *pt)) {
+static PT_THREAD(pt_pwm(struct pt* pt)) {
   PT_BEGIN(pt);
 
   gpio_set_function(PICO_DEFAULT_LED_PIN, GPIO_FUNC_PWM);
@@ -65,13 +65,12 @@ static PT_THREAD(pt_pwm(struct pt *pt)) {
   pwm_config_set_clkdiv(&config, 10.0);
   pwm_init(pwm_slice, &config, true);
 
-  for (;;)
-    tight_loop_contents();
+  for (;;) tight_loop_contents();
 
   PT_END(pt);
 }
 
-static PT_THREAD(pt_onboard_ws2812(struct pt *pt)) {
+static PT_THREAD(pt_onboard_ws2812(struct pt* pt)) {
   PT_BEGIN(pt);
 
   PIO pio = pio0;
@@ -89,24 +88,17 @@ static PT_THREAD(pt_onboard_ws2812(struct pt *pt)) {
   PT_END(pt);
 }
 
-static PT_THREAD(pt_mfrc522_test(struct pt *pt)) {
+static PT_THREAD(pt_mfrc522_test(struct pt* pt)) {
   PT_BEGIN(pt);
 
-  MFRC522 device = MFRC522(
-    PICO_DEFAULT_SPI_SCK_PIN,
-    PICO_DEFAULT_SPI_TX_PIN,
-    PICO_DEFAULT_SPI_RX_PIN,
-    25,
-    6,
-    spi0
-  );
+  MFRC522 device = MFRC522(PICO_DEFAULT_SPI_SCK_PIN, PICO_DEFAULT_SPI_TX_PIN, PICO_DEFAULT_SPI_RX_PIN, 25, 6, spi0);
 
   device.init();
   bi_decl(bi_3pins_with_func(PICO_DEFAULT_SPI_RX_PIN, PICO_DEFAULT_SPI_TX_PIN, PICO_DEFAULT_SPI_SCK_PIN, GPIO_FUNC_SPI))
-  bi_decl(bi_1pin_with_name(25, "SPI chip select"));
+      bi_decl(bi_1pin_with_name(25, "SPI chip select"));
 
   sleep_ms(10000);
-  
+
   if (device.self_test())
     printf("self-test passed!\n");
   else

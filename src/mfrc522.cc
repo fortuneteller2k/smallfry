@@ -1,6 +1,6 @@
+#include <algorithm>
 #include <cstdio>
 #include <cstdlib>
-#include <algorithm>
 
 extern "C" {
 #include "hardware/spi.h"
@@ -10,7 +10,7 @@ extern "C" {
 
 #include "mfrc522.hh"
 
-MFRC522::MFRC522(uint8_t sck, uint8_t mosi, uint8_t miso, uint8_t cs, uint8_t rst, spi_inst_t *spi) {
+MFRC522::MFRC522(uint8_t sck, uint8_t mosi, uint8_t miso, uint8_t cs, uint8_t rst, spi_inst_t* spi) {
   this->sck = sck;
   this->mosi = mosi;
   this->miso = miso;
@@ -23,7 +23,7 @@ void MFRC522::init() {
   gpio_set_function(mosi, GPIO_FUNC_SPI);
   gpio_set_function(miso, GPIO_FUNC_SPI);
   gpio_set_function(sck, GPIO_FUNC_SPI);
-  
+
   gpio_init(rst);
   gpio_set_dir(rst, GPIO_OUT);
   gpio_put(rst, false);
@@ -32,9 +32,9 @@ void MFRC522::init() {
   gpio_set_dir(cs, GPIO_OUT);
   chip_select(true);
 
-  spi_init(spi, 1000000); // this thing operates at 10 kHz apparently
+  spi_init(spi, 1000000);  // this thing operates at 10 kHz apparently
   spi_set_format(spi, 8, SPI_CPOL_0, SPI_CPHA_0, SPI_MSB_FIRST);
-  
+
   gpio_put(rst, true);
 }
 
@@ -52,9 +52,8 @@ void MFRC522::write_register(Register reg, uint8_t val) {
   chip_select(true);
 }
 
-void MFRC522::write_register(Register reg, uint8_t *val) {
-  for (uint8_t i = 0; i < sizeof(val) / sizeof(val[0]); i++)
-    write_register(reg, val[i]);
+void MFRC522::write_register(Register reg, uint8_t* val) {
+  for (uint8_t i = 0; i < sizeof(val) / sizeof(val[0]); i++) write_register(reg, val[i]);
 }
 
 uint8_t MFRC522::read_register(Register reg) {
@@ -71,7 +70,7 @@ uint8_t MFRC522::read_register(Register reg) {
 
 void MFRC522::print_version() {
   uint8_t version = read_register(Version);
-  
+
   switch (version) {
     case 0x92:
       printf("version: MFRC522 v2.0 (%02Xh)\n\n", version);
@@ -87,13 +86,13 @@ bool MFRC522::self_test() {
   uint8_t zero_buf[25] = {0x0};
 
   // Section 16.1.1 Self test
-  write_register(Command, SoftReset); // soft reset
-  write_register(FIFOLevel, 0x80); // flush the buffer
-  write_register(FIFOData, zero_buf); // zero out the fifo buffer
-  write_register(Command, Mem); // transfer the contents of the fifo to the internal buffer
-  write_register(AutoTest, 0x9);  // enable self-test
-  write_register(FIFOData, (uint8_t) 0x0); // write 0x0 to the fifo buffer
-  write_register(Command, CalcCRC); // initiate self-test
+  write_register(Command, SoftReset);      // soft reset
+  write_register(FIFOLevel, 0x80);         // flush the buffer
+  write_register(FIFOData, zero_buf);      // zero out the fifo buffer
+  write_register(Command, Mem);            // transfer the contents of the fifo to the internal buffer
+  write_register(AutoTest, 0x9);           // enable self-test
+  write_register(FIFOData, (uint8_t)0x0);  // write 0x0 to the fifo buffer
+  write_register(Command, CalcCRC);        // initiate self-test
 
   uint8_t j;
 
@@ -119,8 +118,7 @@ bool MFRC522::self_test() {
 
     printf("%02Xh ", buf[i]);
 
-    if ((i + 1) % 8 == 0)
-      printf("\n");
+    if ((i + 1) % 8 == 0) printf("\n");
   }
 
   printf("\nexpected: \n");
@@ -128,8 +126,7 @@ bool MFRC522::self_test() {
   for (uint8_t i = 0; i < 64; i++) {
     printf("%02Xh ", mfrc522_v2_self_test_expected_buffer[i]);
 
-    if ((i + 1) % 8 == 0)
-      printf("\n");
+    if ((i + 1) % 8 == 0) printf("\n");
   }
 
   printf("\n");
