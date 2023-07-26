@@ -9,7 +9,7 @@
   outputs = inputs: inputs.parts.lib.mkFlake { inherit inputs; } {
     systems = [ "aarch64-darwin" "x86_64-darwin" ];
 
-    perSystem = { self', pkgs, ... }: {
+    perSystem = { self', lib, pkgs, ... }: {
       devShells.default = pkgs.mkShell {
         packages = __attrValues {
           inherit (pkgs)

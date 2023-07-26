@@ -14,7 +14,6 @@ extern "C" {
 #include "hardware/pwm.h"
 #include "hardware/regs/intctrl.h"
 #include "hardware/vreg.h"
-#include "mfrc522.hh"
 #include "pico/binary_info.h"
 #include "pico/multicore.h"
 #include "pico/platform.h"
@@ -100,9 +99,9 @@ static PT_THREAD(pt_mfrc522_test(struct pt* pt)) {
   sleep_ms(10000);
 
   if (device.self_test())
-    printf("self-test passed!\n");
+    printf("self test passed!\n");
   else
-    printf("self-test failed!\n");
+    printf("self test failed!\n");
 
   PT_END(pt);
 }

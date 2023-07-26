@@ -1,6 +1,7 @@
 #include <algorithm>
 #include <cstdio>
 #include <cstdlib>
+#include <vector>
 
 extern "C" {
 #include "hardware/spi.h"
@@ -38,34 +39,38 @@ void MFRC522::init() {
   gpio_put(rst, true);
 }
 
-void MFRC522::chip_select(bool value) {
-  asm volatile("nop \n nop \n nop");
-  gpio_put(cs, value);
-  asm volatile("nop \n nop \n nop");
-}
+void MFRC522::chip_select(bool value) { gpio_put(cs, value); }
 
 void MFRC522::write_register(Register reg, uint8_t val) {
-  uint8_t data[2] = {0xff & ((reg << 1) & 0x7e), val};
+  std::vector<uint8_t> data{{(uint8_t)(0xff & ((reg << 1)) & 0x7e), val}};
 
   chip_select(false);
-  spi_write_blocking(spi, data, 2);
+  spi_write_blocking(spi, &data[0], 2);
   chip_select(true);
 }
 
-void MFRC522::write_register(Register reg, uint8_t* val) {
-  for (uint8_t i = 0; i < sizeof(val) / sizeof(val[0]); i++) write_register(reg, val[i]);
+void MFRC522::write_register(Register reg, std::vector<uint8_t> val) {
+  for (uint8_t b : val) write_register(reg, b);
 }
 
 uint8_t MFRC522::read_register(Register reg) {
-  uint8_t data[1];
+  std::vector<uint8_t> data(1);
   uint8_t addr = 0xff & (((reg << 1) & 0x7e) | 0x80);
 
   chip_select(false);
   spi_write_blocking(spi, &addr, 1);
-  spi_read_blocking(spi, 0, data, 1);
+  spi_read_blocking(spi, 0, &data.at(0), 1);
   chip_select(true);
 
-  return data[0];
+  return data.at(0);
+}
+
+std::vector<uint8_t> MFRC522::read_register(Register reg, size_t size) {
+  std::vector<uint8_t> data(size);
+
+  for (size_t i = 0; i < size; i++) data.at(i) = read_register(reg);
+
+  return data;
 }
 
 void MFRC522::print_version() {
@@ -83,7 +88,8 @@ void MFRC522::print_version() {
 
 bool MFRC522::self_test() {
   printf("MFRC522 self test\n");
-  uint8_t zero_buf[25] = {0x0};
+  std::vector<uint8_t> zero_buf(25);
+  zero_buf.assign(25, 0x0);
 
   // Section 16.1.1 Self test
   write_register(Command, SoftReset);      // soft reset
@@ -94,12 +100,12 @@ bool MFRC522::self_test() {
   write_register(FIFOData, (uint8_t)0x0);  // write 0x0 to the fifo buffer
   write_register(Command, CalcCRC);        // initiate self-test
 
-  uint8_t j;
+  size_t fifo_buf_size = read_register(FIFOLevel);
 
   // repeatedly check if we have 64 bytes in the fifo buffer
-  for (uint8_t i = 0; i < UINT8_MAX; i++) {
-    j = read_register(FIFOLevel);
-    if (j >= 64) break;
+  for (size_t i = 0; i < SIZE_MAX; i++) {
+    if (fifo_buf_size >= 64) break;
+    fifo_buf_size = read_register(FIFOLevel);
   }
 
   // done with the self-test
@@ -108,28 +114,26 @@ bool MFRC522::self_test() {
 
   print_version();
 
-  uint8_t buf[64];
+  // read 64 bytes off the fifo buffer
+  std::vector<uint8_t> buf = read_register(FIFOData, 64);
 
   printf("got: \n");
 
-  // read 64 bytes off the fifo buffer
-  for (uint8_t i = 0; i < 64; i++) {
-    buf[i] = read_register(FIFOData);
-
-    printf("%02Xh ", buf[i]);
-
+  std::for_each(buf.begin(), buf.end(), [i = 0](uint8_t const& b) mutable {
+    printf("%02Xh ", b);
     if ((i + 1) % 8 == 0) printf("\n");
-  }
+    ++i;
+  });
 
   printf("\nexpected: \n");
 
-  for (uint8_t i = 0; i < 64; i++) {
-    printf("%02Xh ", mfrc522_v2_self_test_expected_buffer[i]);
-
+  std::for_each(mfrc522_v2_test_buf.begin(), mfrc522_v2_test_buf.end(), [i = 0](uint8_t const& b) mutable {
+    printf("%02Xh ", b);
     if ((i + 1) % 8 == 0) printf("\n");
-  }
+    ++i;
+  });
 
   printf("\n");
 
-  return std::equal(buf, buf + sizeof(buf), mfrc522_v2_self_test_expected_buffer);
+  return std::equal(buf.begin(), buf.end(), mfrc522_v2_test_buf.begin());
 }
