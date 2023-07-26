@@ -1,77 +1,38 @@
-#include "boards/adafruit_feather_rp2040.h"
-#include "hardware/gpio.h"
-#include "hardware/i2c.h"
-#include "hardware/irq.h"
-#include "hardware/pio.h"
-#include "hardware/pwm.h"
-#include "hardware/regs/intctrl.h"
-#include "hardware/vreg.h"
-#include "pico/binary_info.h"
-#include "pico/multicore.h"
-#include "pico/platform.h"
-#include "pico/stdio.h"
-#include "pico/stdlib.h"
-#include "pico/time.h"
-#include "pico/types.h"
-#include "protothreads.h"
-#include "ws2812.pio.h"
-#include <math.h>
-#include <stddef.h>
-#include <stdint.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+#include <cmath>
+#include <cstddef>
+#include <cstdint>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+
+extern "C" {
+  #include "boards/adafruit_feather_rp2040.h"
+  #include "hardware/gpio.h"
+  #include "hardware/i2c.h"
+  #include "hardware/irq.h"
+  #include "hardware/pio.h"
+  #include "hardware/pwm.h"
+  #include "hardware/regs/intctrl.h"
+  #include "hardware/vreg.h"
+  #include "mfrc522.hh"
+  #include "pico/binary_info.h"
+  #include "pico/multicore.h"
+  #include "pico/platform.h"
+  #include "pico/stdio.h"
+  #include "pico/stdlib.h"
+  #include "pico/time.h"
+  #include "pico/types.h"
+  #include "protothreads.h"
+  #include "ws2812.pio.h"
+}
+
+#include "rgb8.hh"
+#include "mfrc522.hh"
 
 #define OVERCLOCK_273_MHZ true
 #define UNDERCLOCK_18_MHZ true
 
 spin_lock_t *lock_delta, *lock_error;
-
-typedef struct RGB8 {
-  uint8_t r;
-  uint8_t g;
-  uint8_t b;
-} RGB8;
-
-RGB8 wheel(uint8_t pos) {
-  RGB8 color;
-
-  pos = UINT8_MAX - pos;
-
-  if (pos < 85) {
-    color.r = UINT8_MAX - pos * 3;
-    color.g = 0;
-    color.b = pos * 3;
-  } else if (pos < 170) {
-    pos -= 85;
-    color.r = 0;
-    color.g = pos * 3;
-    color.b = UINT8_MAX - pos * 3;
-  } else {
-    pos -= 170;
-    color.r = pos * 3;
-    color.g = UINT8_MAX - pos * 3;
-    color.b = 0;
-  }
-
-  return color;
-}
-
-RGB8 brightness(RGB8 color, uint8_t brightness) {
-  color.r = (uint8_t)((uint16_t)color.r * ((uint16_t)brightness + 1) /
-                      (UINT8_MAX + 1));
-  color.g = (uint8_t)((uint16_t)color.g * ((uint16_t)brightness + 1) /
-                      (UINT8_MAX + 1));
-  color.b = (uint8_t)((uint16_t)color.b * ((uint16_t)brightness + 1) /
-                      (UINT8_MAX + 1));
-
-  return color;
-}
-
-static inline uint32_t rgb_as_u32(RGB8 color) {
-  return ((uint32_t)(color.r) << 8) | ((uint32_t)(color.g) << 16) |
-         (uint32_t)(color.b);
-}
 
 void pwm_isr_on_wrap() {
   pwm_clear_irq(pwm_gpio_to_slice_num(PICO_DEFAULT_LED_PIN));
@@ -122,7 +83,7 @@ static PT_THREAD(pt_onboard_ws2812(struct pt *pt)) {
                       800000, true);
 
   for (uint8_t i = 0; true; i == UINT8_MAX ? i = 0 : i++) {
-    uint32_t color = rgb_as_u32(brightness(wheel(i), 30));
+    uint32_t color = RGB8::rgb8_as_u32(RGB8().wheel(i).brightness(30));
     pio_sm_put_blocking(pio, state_machine, color << 8);
     sleep_ms(10);
   }
@@ -130,8 +91,35 @@ static PT_THREAD(pt_onboard_ws2812(struct pt *pt)) {
   PT_END(pt);
 }
 
+static PT_THREAD(pt_mfrc522_test(struct pt *pt)) {
+  PT_BEGIN(pt);
+
+  MFRC522 device = MFRC522(
+    PICO_DEFAULT_SPI_SCK_PIN,
+    PICO_DEFAULT_SPI_TX_PIN,
+    PICO_DEFAULT_SPI_RX_PIN,
+    25,
+    6,
+    spi0
+  );
+
+  device.init();
+  bi_decl(bi_3pins_with_func(PICO_DEFAULT_SPI_RX_PIN, PICO_DEFAULT_SPI_TX_PIN, PICO_DEFAULT_SPI_SCK_PIN, GPIO_FUNC_SPI))
+  bi_decl(bi_1pin_with_name(25, "SPI chip select"));
+
+  sleep_ms(1000);
+  printf("MFRC522 self test");
+
+  for (;;) {
+    device.self_test();
+    sleep_ms(3000);
+  }
+
+  PT_END(pt);
+}
+
 void core1_entry() {
-  pt_add_thread(pt_pwm);
+  pt_add_thread(pt_mfrc522_test);
   pt_schedule_start;
 }
 
@@ -154,5 +142,6 @@ int main(void) {
   multicore_launch_core1(&core1_entry);
 
   pt_add_thread(pt_onboard_ws2812);
+  pt_add_thread(pt_pwm);
   pt_schedule_start;
 }

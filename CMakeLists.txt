@@ -11,8 +11,8 @@ set(CMAKE_C_STANDARD 23)
 
 pico_sdk_init()
 
-add_executable(smallfry src/smallfry.c)
-target_sources(smallfry PRIVATE src/smallfry.c src/mfrc522.c src/mfrc522.h)
+add_executable(smallfry src/smallfry.cc)
+target_sources(smallfry PRIVATE src/smallfry.cc src/rgb8.cc src/rgb8.hh src/mfrc522.cc src/mfrc522.hh)
 
 pico_generate_pio_header(smallfry ${CMAKE_CURRENT_LIST_DIR}/src/ws2812.pio)
 
