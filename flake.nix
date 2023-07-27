@@ -10,7 +10,7 @@
     systems = [ "aarch64-darwin" "x86_64-darwin" ];
 
     perSystem = { self', lib, pkgs, ... }: {
-      devShells.default = pkgs.mkShell {
+      devShells.default = pkgs.mkShellNoCC {
         packages = __attrValues {
           inherit (pkgs)
             picotool

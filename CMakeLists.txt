@@ -7,8 +7,11 @@ include($ENV{PICO_SDK_PATH}/external/pico_sdk_import.cmake)
 set(PICO_BOARD "adafruit_feather_rp2040")
 
 project(smallfry C CXX ASM)
+
 set(CMAKE_C_STANDARD 23)
 set(CMAKE_CXX_STANDARD 23)
+set(C_STANDARD 23)
+set(CXX_STANDARD 23)
 set(PICO_CXX_ENABLE_EXCEPTIONS 1)
 
 pico_sdk_init()
