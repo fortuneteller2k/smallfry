@@ -39,18 +39,18 @@ void MFRC522::init() {
   gpio_put(rst, true);
 }
 
-void MFRC522::chip_select(bool value) { gpio_put(cs, value); }
+inline void MFRC522::chip_select(bool value) { gpio_put(cs, value); }
 
 void MFRC522::write_register(Register reg, uint8_t val) {
   std::vector<uint8_t> data{{(uint8_t)(0xff & ((reg << 1)) & 0x7e), val}};
 
   chip_select(false);
-  spi_write_blocking(spi, &data[0], 2);
+  spi_write_blocking(spi, &data.at(0), 2);
   chip_select(true);
 }
 
 void MFRC522::write_register(Register reg, std::vector<uint8_t> val) {
-  for (uint8_t b : val) write_register(reg, b);
+  for (const uint8_t b : val) write_register(reg, b);
 }
 
 uint8_t MFRC522::read_register(Register reg) {
@@ -66,10 +66,8 @@ uint8_t MFRC522::read_register(Register reg) {
 }
 
 std::vector<uint8_t> MFRC522::read_register(Register reg, size_t size) {
-  std::vector<uint8_t> data(size);
-
-  for (size_t i = 0; i < size; i++) data.at(i) = read_register(reg);
-
+  std::vector<uint8_t> data;
+  for (size_t i = 0; i != size; i++) data.push_back(read_register(reg));
   return data;
 }
 
@@ -88,61 +86,53 @@ void MFRC522::version() {
 
 bool MFRC522::self_test() {
   printf("MFRC522 self test\n");
+  version();
+
   std::vector<uint8_t> zero_buf(25);
-  zero_buf.assign(25, 0x0);
+  std::fill(zero_buf.begin(), zero_buf.end(), 0x0u);
 
   // Section 16.1.1 Self test
-  write_register(Command, SoftReset);      // soft reset
-  write_register(FIFOLevel, 0x80);         // flush the buffer
-  write_register(FIFOData, zero_buf);      // zero out the fifo buffer
-  write_register(Command, Mem);            // transfer the contents of the fifo to the internal buffer
-  write_register(AutoTest, 0x9);           // enable self-test
-  write_register(FIFOData, (uint8_t)0x0);  // write 0x0 to the fifo buffer
-  write_register(Command, CalcCRC);        // initiate self-test
+  write_register(Command, SoftReset);  // soft reset
+  write_register(FIFOLevel, 0x80);     // flush the buffer
+  write_register(FIFOData, zero_buf);  // zero out the fifo buffer
+  write_register(Command, Mem);        // transfer the contents of the fifo to the internal buffer
+  write_register(AutoTest, 0x9);       // enable self-test
+  write_register(FIFOData, 0x0u);      // write 0x0 to the fifo buffer
+  write_register(Command, CalcCRC);    // initiate self-test
 
   size_t fifo_buf_size = read_register(FIFOLevel);
 
-  // repeatedly check if we have 64 bytes in the fifo buffer
-  for (size_t i = 0; i < SIZE_MAX; i++) {
-    if (fifo_buf_size >= 64) break;
-    fifo_buf_size = read_register(FIFOLevel);
-  }
+  // wait until we have 64 bytes in the fifo buffer
+  while (fifo_buf_size < 64) fifo_buf_size = read_register(FIFOLevel);
 
   // done with the self-test
-  write_register(AutoTest, (uint8_t)0x0);
+  write_register(AutoTest, 0x0u);
   write_register(Command, Idle);
-
-  version();
 
   // read 64 bytes off the fifo buffer
   std::vector<uint8_t> buf = read_register(FIFOData, 64);
 
+  auto print_contents = [i = 0](const uint8_t& b) mutable {
+    printf("%02Xh ", b);
+    if ((i + 1) % 8 == 0) printf("\n");
+    ++i;
+  };
+
   printf("got: \n");
-
-  std::for_each(buf.begin(), buf.end(), [i = 0](uint8_t const& b) mutable {
-    printf("%02Xh ", b);
-    if ((i + 1) % 8 == 0) printf("\n");
-    ++i;
-  });
-
+  std::for_each(buf.cbegin(), buf.cend(), print_contents);
   printf("\nexpected: \n");
-
-  std::for_each(mfrc522_v2_test_buf.begin(), mfrc522_v2_test_buf.end(), [i = 0](uint8_t const& b) mutable {
-    printf("%02Xh ", b);
-    if ((i + 1) % 8 == 0) printf("\n");
-    ++i;
-  });
-
+  std::for_each(mfrc522_v2_test_buf.cbegin(), mfrc522_v2_test_buf.cend(), print_contents);
   printf("\n");
 
-  return std::equal(buf.begin(), buf.end(), mfrc522_v2_test_buf.begin());
+  return std::equal(buf.cbegin(), buf.cend(), mfrc522_v2_test_buf.cbegin());
 }
 
 void MFRC522::toggle_antenna(bool value) {
   uint8_t tx_control = read_register(TxControl);
 
   if (value)
-    if ((tx_control & 0x03) != 0x03) write_register(TxControl, tx_control | 0x03);
-  else
-    write_register(TxControl, tx_control & (~0x03));
+    if ((tx_control & 0x03) != 0x03)
+      write_register(TxControl, tx_control | 0x03);
+    else
+      write_register(TxControl, tx_control & (~0x03));
 }

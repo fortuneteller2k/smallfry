@@ -9,7 +9,7 @@ extern "C" {
 }
 
 class MFRC522 {
- public:
+ private:
   uint8_t sck;
   uint8_t mosi;
   uint8_t miso;
@@ -17,6 +17,7 @@ class MFRC522 {
   uint8_t rst;
   spi_inst_t* spi;
 
+ public:
   enum Register {
     Command = 0x01,
     ComIEn = 0x02,
