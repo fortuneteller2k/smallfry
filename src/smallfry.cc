@@ -4,6 +4,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <utility>
 
 extern "C" {
 #include "boards/adafruit_feather_rp2040.h"
@@ -21,7 +22,7 @@ extern "C" {
 #include "pico/stdlib.h"
 #include "pico/time.h"
 #include "pico/types.h"
-#include "protothreads.h"
+#include "protothreads.h"  // todo: use c++ implementation
 #include "ws2812.pio.h"
 }
 
@@ -29,7 +30,7 @@ extern "C" {
 #include "rgb8.hh"
 
 #define OVERCLOCK_273_MHZ true
-#define UNDERCLOCK_18_MHZ true
+#define UNDERCLOCK_18_MHZ false
 
 spin_lock_t *lock_delta, *lock_error;
 
@@ -93,10 +94,7 @@ static PT_THREAD(pt_mfrc522_test(struct pt* pt)) {
   MFRC522 device = MFRC522(PICO_DEFAULT_SPI_SCK_PIN, PICO_DEFAULT_SPI_TX_PIN, PICO_DEFAULT_SPI_RX_PIN, 25, 6, spi0);
 
   device.init();
-  bi_decl(bi_3pins_with_func(PICO_DEFAULT_SPI_RX_PIN, PICO_DEFAULT_SPI_TX_PIN, PICO_DEFAULT_SPI_SCK_PIN, GPIO_FUNC_SPI))
-      bi_decl(bi_1pin_with_name(25, "SPI chip select"));
-
-  sleep_ms(10000);
+  sleep_ms(5000);
 
   if (device.self_test())
     printf("self test passed!\n");
@@ -110,6 +108,8 @@ void core1_entry() {
   pt_add_thread(pt_mfrc522_test);
   pt_add_thread(pt_pwm);
   pt_schedule_start;
+
+  std::unreachable();
 }
 
 int main(void) {
@@ -132,4 +132,6 @@ int main(void) {
 
   pt_add_thread(pt_onboard_ws2812);
   pt_schedule_start;
+
+  std::unreachable();
 }

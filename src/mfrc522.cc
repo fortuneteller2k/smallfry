@@ -19,6 +19,15 @@ MFRC522::MFRC522(uint8_t sck, uint8_t mosi, uint8_t miso, uint8_t cs, uint8_t rs
   this->spi = spi;
 };
 
+MFRC522::~MFRC522() {
+  spi_deinit(spi);
+  gpio_deinit(sck);
+  gpio_deinit(mosi);
+  gpio_deinit(miso);
+  gpio_deinit(cs);
+  gpio_deinit(rst);
+};
+
 void MFRC522::init() {
   gpio_set_function(mosi, GPIO_FUNC_SPI);
   gpio_set_function(miso, GPIO_FUNC_SPI);
@@ -70,22 +79,25 @@ std::vector<uint8_t> MFRC522::read_register(Register reg, size_t size) {
   return data;
 }
 
-void MFRC522::version() {
+std::array<const uint8_t, 64> MFRC522::version() {
   uint8_t version = read_register(Version);
 
   switch (version) {
+    case 0x91:
+      printf("version: MFRC522 v1.0 (%02Xh)\n\n", version);
+      return mfrc522_v1_test_buf;
     case 0x92:
       printf("version: MFRC522 v2.0 (%02Xh)\n\n", version);
-      break;
+      return mfrc522_v2_test_buf;
     default:
       printf("version: unknown (%02Xh)\n\n", version);
-      break;
+      return std::array<const uint8_t, 64>{0};
   }
 }
 
 bool MFRC522::self_test() {
   printf("MFRC522 self test\n");
-  version();
+  std::array<const uint8_t, 64> expected = version();
 
   // Section 16.1.1 Self test
   write_register(Command, SoftReset);                    // soft reset
@@ -117,10 +129,10 @@ bool MFRC522::self_test() {
   printf("got: \n");
   std::for_each(buf.cbegin(), buf.cend(), print_contents);
   printf("\nexpected: \n");
-  std::for_each(mfrc522_v2_test_buf.cbegin(), mfrc522_v2_test_buf.cend(), print_contents);
+  std::for_each(expected.cbegin(), expected.cend(), print_contents);
   printf("\n");
 
-  return std::equal(buf.cbegin(), buf.cend(), mfrc522_v2_test_buf.cbegin());
+  return std::equal(buf.cbegin(), buf.cend(), expected.cbegin());
 }
 
 void MFRC522::toggle_antenna(bool value) {
