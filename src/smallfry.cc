@@ -5,8 +5,6 @@
 #include <cstdlib>
 #include <cstring>
 #include <utility>
-
-extern "C" {
 #include "boards/adafruit_feather_rp2040.h"
 #include "hardware/gpio.h"
 #include "hardware/i2c.h"
@@ -15,6 +13,7 @@ extern "C" {
 #include "hardware/pwm.h"
 #include "hardware/regs/intctrl.h"
 #include "hardware/vreg.h"
+#include "mfrc522.hh"
 #include "pico/binary_info.h"
 #include "pico/multicore.h"
 #include "pico/platform.h"
@@ -22,15 +21,15 @@ extern "C" {
 #include "pico/stdlib.h"
 #include "pico/time.h"
 #include "pico/types.h"
-#include "protothreads.h"  // todo: use c++ implementation
+#include "rgb8.hh"
 #include "ws2812.pio.h"
+
+extern "C" {
+#include "protothreads.h"
 }
 
-#include "mfrc522.hh"
-#include "rgb8.hh"
-
 #define OVERCLOCK_273_MHZ true
-#define UNDERCLOCK_18_MHZ false
+#define UNDERCLOCK_18_MHZ true
 
 spin_lock_t *lock_delta, *lock_error;
 
@@ -52,6 +51,8 @@ static PT_THREAD(pt_pwm(struct pt* pt)) {
   PT_BEGIN(pt);
 
   gpio_set_function(PICO_DEFAULT_LED_PIN, GPIO_FUNC_PWM);
+  gpio_set_drive_strength(PICO_DEFAULT_LED_PIN, GPIO_DRIVE_STRENGTH_12MA);
+  gpio_set_slew_rate(PICO_DEFAULT_LED_PIN, GPIO_SLEW_RATE_FAST);
 
   uint8_t pwm_slice = pwm_gpio_to_slice_num(PICO_DEFAULT_LED_PIN);
 
@@ -77,12 +78,13 @@ static PT_THREAD(pt_onboard_ws2812(struct pt* pt)) {
   uint32_t state_machine = 0;
   uint32_t offset = pio_add_program(pio, &ws2812_program);
 
+  gpio_set_drive_strength(PICO_DEFAULT_WS2812_PIN, GPIO_DRIVE_STRENGTH_12MA);
   ws2812_program_init(pio, state_machine, offset, PICO_DEFAULT_WS2812_PIN, 800000, true);
 
   for (uint8_t i = 0; true; i == UINT8_MAX ? i = 0 : i++) {
-    uint32_t color = RGB8::rgb8_as_u32(RGB8().wheel(i).brightness(30));
+    uint32_t color = RGB8::rgb8_as_u32(RGB8::wheel(i).brightness(10));
     pio_sm_put_blocking(pio, state_machine, color << 8);
-    sleep_ms(10);
+    sleep_ms(8);
   }
 
   PT_END(pt);
@@ -93,7 +95,6 @@ static PT_THREAD(pt_mfrc522_test(struct pt* pt)) {
 
   MFRC522 device = MFRC522(PICO_DEFAULT_SPI_SCK_PIN, PICO_DEFAULT_SPI_TX_PIN, PICO_DEFAULT_SPI_RX_PIN, 25, 6, spi0);
 
-  device.init();
   sleep_ms(5000);
 
   if (device.self_test())
@@ -105,14 +106,14 @@ static PT_THREAD(pt_mfrc522_test(struct pt* pt)) {
 }
 
 void core1_entry() {
-  pt_add_thread(pt_mfrc522_test);
+  // pt_add_thread(pt_mfrc522_test);
   pt_add_thread(pt_pwm);
   pt_schedule_start;
 
-  std::unreachable();
+  return std::unreachable();
 }
 
-int main(void) {
+int main() {
 #if OVERCLOCK_273_MHZ
   vreg_set_voltage(VREG_VOLTAGE_1_30);
   set_sys_clock_khz(273000, true);
@@ -134,4 +135,5 @@ int main(void) {
   pt_schedule_start;
 
   std::unreachable();
+  return EXIT_FAILURE;
 }

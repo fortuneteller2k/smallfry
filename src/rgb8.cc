@@ -12,7 +12,16 @@ RGB8::RGB8(uint8_t r, uint8_t g, uint8_t b) {
   this->b = b;
 }
 
+RGB8 RGB8::brightness(uint8_t brightness) {
+  r = (uint8_t)((uint16_t)r * ((uint16_t)brightness + 1) / (UINT8_MAX + 1));
+  g = (uint8_t)((uint16_t)g * ((uint16_t)brightness + 1) / (UINT8_MAX + 1));
+  b = (uint8_t)((uint16_t)b * ((uint16_t)brightness + 1) / (UINT8_MAX + 1));
+
+  return *this;
+}
+
 RGB8 RGB8::wheel(uint8_t pos) {
+  uint8_t r, g, b;
   pos = UINT8_MAX - pos;
 
   if (pos < 85) {
@@ -31,15 +40,7 @@ RGB8 RGB8::wheel(uint8_t pos) {
     b = 0;
   }
 
-  return *this;
-}
-
-RGB8 RGB8::brightness(uint8_t brightness) {
-  r = (uint8_t)((uint16_t)r * ((uint16_t)brightness + 1) / (UINT8_MAX + 1));
-  g = (uint8_t)((uint16_t)g * ((uint16_t)brightness + 1) / (UINT8_MAX + 1));
-  b = (uint8_t)((uint16_t)b * ((uint16_t)brightness + 1) / (UINT8_MAX + 1));
-
-  return *this;
+  return RGB8(r, g, b);
 }
 
 uint32_t RGB8::rgb8_as_u32(RGB8 color) {
