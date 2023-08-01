@@ -1,3 +1,5 @@
+#include "mfrc522.hh"
+
 #include <algorithm>
 #include <cstdio>
 #include <cstdlib>
@@ -5,7 +7,6 @@
 #include "hardware/spi.h"
 #include "pico/stdlib.h"
 #include "pico/time.h"
-#include "mfrc522.hh"
 
 MFRC522::MFRC522(uint8_t sck, uint8_t mosi, uint8_t miso, uint8_t cs, uint8_t rst, spi_inst_t* spi) {
   gpio_set_function(mosi, GPIO_FUNC_SPI);
@@ -68,10 +69,10 @@ uint8_t MFRC522::read_register(Register reg) {
   return data.at(0);
 }
 
-std::vector<uint8_t> MFRC522::read_register(Register reg, size_t size) {
+std::span<uint8_t> MFRC522::read_register(Register reg, size_t size) {
   std::vector<uint8_t> data;
   for (size_t i = 0; i != size; i++) data.push_back(read_register(reg));
-  return data;
+  return std::span{data};
 }
 
 std::array<const uint8_t, 64> MFRC522::version() {
@@ -112,7 +113,7 @@ bool MFRC522::self_test() {
   write_register(Command, Idle);
 
   // read 64 bytes off the fifo buffer
-  std::vector<uint8_t> buf = read_register(FIFOData, 64);
+  std::span<uint8_t> buf = read_register(FIFOData, 64);
   std::array<const uint8_t, 64> expected = version();
 
   auto print_contents = [i = 0](const uint8_t& b) mutable {
@@ -122,12 +123,12 @@ bool MFRC522::self_test() {
   };
 
   printf("got: \n");
-  std::for_each(buf.cbegin(), buf.cend(), print_contents);
+  std::for_each(buf.begin(), buf.end(), print_contents);
   printf("\nexpected: \n");
   std::for_each(expected.cbegin(), expected.cend(), print_contents);
   printf("\n");
 
-  return std::equal(buf.cbegin(), buf.cend(), expected.cbegin());
+  return std::equal(buf.begin(), buf.end(), expected.cbegin());
 }
 
 void MFRC522::toggle_antenna(bool value) {

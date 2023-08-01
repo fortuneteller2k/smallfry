@@ -1,3 +1,6 @@
+#include <FreeRTOS.h>
+#include <task.h>
+
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
@@ -6,7 +9,6 @@
 #include <cstring>
 #include <utility>
 
-#include "rtos.hh"
 #include "boards/adafruit_feather_rp2040.h"
 #include "hardware/gpio.h"
 #include "hardware/irq.h"
@@ -22,10 +24,8 @@
 #include "pico/time.h"
 #include "pico/types.h"
 #include "rgb8.hh"
+#include "rtos.hh"
 #include "ws2812.pio.h"
-
-#include <FreeRTOS.h>
-#include <task.h>
 
 #define OVERCLOCK_273_MHZ true
 #define UNDERCLOCK_18_MHZ false
@@ -108,7 +108,7 @@ int main() {
 
   TaskHandle_t core0_handle, core1_handle, all_core_handle;
 
-  xTaskCreate(onboard_ws2812_task, "onboard_ws2812_task", 1024, nullptr, 1, &all_core_handle);
+  xTaskCreate(onboard_ws2812_task, "onboard_ws2812_task", 1024, nullptr, 3, &all_core_handle);
   xTaskCreate(mfrc522_task, "mfrc522_task", 4096, nullptr, 5, &core0_handle);
   xTaskCreate(onboard_led_pwm_task, "onboard_led_pwm_task", 1024, nullptr, 1, &core1_handle);
 
