@@ -1,6 +1,3 @@
-#include <FreeRTOS.h>
-#include <task.h>
-
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
@@ -12,7 +9,6 @@
 #include "rtos.hh"
 #include "boards/adafruit_feather_rp2040.h"
 #include "hardware/gpio.h"
-#include "hardware/i2c.h"
 #include "hardware/irq.h"
 #include "hardware/pio.h"
 #include "hardware/pwm.h"
@@ -20,7 +16,6 @@
 #include "hardware/vreg.h"
 #include "mfrc522.hh"
 #include "pico/binary_info.h"
-#include "pico/multicore.h"
 #include "pico/platform.h"
 #include "pico/stdio.h"
 #include "pico/stdlib.h"
@@ -28,6 +23,9 @@
 #include "pico/types.h"
 #include "rgb8.hh"
 #include "ws2812.pio.h"
+
+#include <FreeRTOS.h>
+#include <task.h>
 
 #define OVERCLOCK_273_MHZ true
 #define UNDERCLOCK_18_MHZ false
@@ -46,7 +44,7 @@ void pwm_isr_on_wrap() {
   pwm_set_gpio_level(PICO_DEFAULT_LED_PIN, duty);
 }
 
-void onboard_led_pwm_task(void* p) {
+void onboard_led_pwm_task(void*) {
   gpio_set_function(PICO_DEFAULT_LED_PIN, GPIO_FUNC_PWM);
   gpio_set_drive_strength(PICO_DEFAULT_LED_PIN, GPIO_DRIVE_STRENGTH_12MA);
   gpio_set_slew_rate(PICO_DEFAULT_LED_PIN, GPIO_SLEW_RATE_FAST);
@@ -65,10 +63,10 @@ void onboard_led_pwm_task(void* p) {
 
   for (;;) tight_loop_contents();
 
-  return std::unreachable();
+  return vTaskDelete(nullptr);
 }
 
-void onboard_ws2812_task(void* p) {
+void onboard_ws2812_task(void*) {
   PIO pio = pio0;
   uint32_t state_machine = 0;
   uint32_t offset = pio_add_program(pio, &ws2812_program);
@@ -82,10 +80,10 @@ void onboard_ws2812_task(void* p) {
     vTaskDelay(5);
   }
 
-  return std::unreachable();
+  return vTaskDelete(nullptr);
 }
 
-void mfrc522_task(void* p) {
+void mfrc522_task(void*) {
   MFRC522 device = MFRC522(PICO_DEFAULT_SPI_SCK_PIN, PICO_DEFAULT_SPI_TX_PIN, PICO_DEFAULT_SPI_RX_PIN, 25, 6, spi0);
 
   vTaskDelay(5000);
@@ -94,6 +92,8 @@ void mfrc522_task(void* p) {
     printf("self test passed!\n");
   else
     printf("self test failed!\n");
+
+  return vTaskDelete(nullptr);
 }
 
 int main() {
@@ -104,18 +104,17 @@ int main() {
   vreg_set_voltage(VREG_VOLTAGE_0_90);
   set_sys_clock_khz(18000, true);
 #endif
-
   stdio_init_all();
-  setup_default_uart();
 
-  TaskHandle_t core0_handle, core1_handle;
+  TaskHandle_t core0_handle, core1_handle, all_core_handle;
 
-  xTaskCreate(onboard_ws2812_task, "onboard_ws2812_task", 1024, NULL, 1, &core0_handle);
-  xTaskCreate(mfrc522_task, "mfrc522_task", 4096, NULL, 5, &core1_handle);
-  xTaskCreate(onboard_led_pwm_task, "onboard_led_pwm_task", 1024, NULL, 1, &core1_handle);
+  xTaskCreate(onboard_ws2812_task, "onboard_ws2812_task", 1024, nullptr, 1, &all_core_handle);
+  xTaskCreate(mfrc522_task, "mfrc522_task", 4096, nullptr, 5, &core0_handle);
+  xTaskCreate(onboard_led_pwm_task, "onboard_led_pwm_task", 1024, nullptr, 1, &core1_handle);
 
   vTaskCoreAffinitySet(core0_handle, (1 << 0));
   vTaskCoreAffinitySet(core1_handle, (1 << 1));
+  vTaskCoreAffinitySet(all_core_handle, (1 << 0) | (1 << 1));
 
   vTaskStartScheduler();
 

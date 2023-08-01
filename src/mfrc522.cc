@@ -1,5 +1,3 @@
-#include "mfrc522.hh"
-
 #include <algorithm>
 #include <cstdio>
 #include <cstdlib>
@@ -7,6 +5,7 @@
 #include "hardware/spi.h"
 #include "pico/stdlib.h"
 #include "pico/time.h"
+#include "mfrc522.hh"
 
 MFRC522::MFRC522(uint8_t sck, uint8_t mosi, uint8_t miso, uint8_t cs, uint8_t rst, spi_inst_t* spi) {
   gpio_set_function(mosi, GPIO_FUNC_SPI);
@@ -93,7 +92,6 @@ std::array<const uint8_t, 64> MFRC522::version() {
 
 bool MFRC522::self_test() {
   printf("MFRC522 self test\n");
-  std::array<const uint8_t, 64> expected = version();
 
   // Section 16.1.1 Self test
   write_register(Command, SoftReset);                    // soft reset
@@ -101,7 +99,7 @@ bool MFRC522::self_test() {
   write_register(FIFOData, std::array<uint8_t, 25>{0});  // write 25 bytes of 00h to the fifo buffer
   write_register(Command, Mem);                          // transfer the contents of the fifo to the internal buffer
   write_register(AutoTest, 0x9);                         // enable self-test
-  write_register(FIFOData, 0x0);                        // write 00h to the fifo buffer
+  write_register(FIFOData, 0x0);                         // write 00h to the fifo buffer
   write_register(Command, CalcCRC);                      // initiate self-test
 
   size_t fifo_buf_size = read_register(FIFOLevel);
@@ -115,6 +113,7 @@ bool MFRC522::self_test() {
 
   // read 64 bytes off the fifo buffer
   std::vector<uint8_t> buf = read_register(FIFOData, 64);
+  std::array<const uint8_t, 64> expected = version();
 
   auto print_contents = [i = 0](const uint8_t& b) mutable {
     printf("%02Xh ", b);
