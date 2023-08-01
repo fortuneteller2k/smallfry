@@ -88,7 +88,7 @@ class MFRC522 {
   void write_register(Register reg, uint8_t byte);
   void write_register(Register reg, std::span<const uint8_t> bytes);
   uint8_t read_register(Register reg);
-  std::span<const uint8_t> read_register(Register reg, size_t size);
+  std::vector<uint8_t> read_register(Register reg, size_t size);
   void chip_select(bool value);
   std::array<const uint8_t, 64> version();
   bool self_test();

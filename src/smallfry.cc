@@ -1,3 +1,6 @@
+#include <FreeRTOS.h>
+#include <task.h>
+
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
@@ -5,6 +8,8 @@
 #include <cstdlib>
 #include <cstring>
 #include <utility>
+
+#include "rtos.hh"
 #include "boards/adafruit_feather_rp2040.h"
 #include "hardware/gpio.h"
 #include "hardware/i2c.h"
@@ -24,14 +29,8 @@
 #include "rgb8.hh"
 #include "ws2812.pio.h"
 
-extern "C" {
-#include "protothreads.h"
-}
-
 #define OVERCLOCK_273_MHZ true
-#define UNDERCLOCK_18_MHZ true
-
-spin_lock_t *lock_delta, *lock_error;
+#define UNDERCLOCK_18_MHZ false
 
 void pwm_isr_on_wrap() {
   pwm_clear_irq(pwm_gpio_to_slice_num(PICO_DEFAULT_LED_PIN));
@@ -47,9 +46,7 @@ void pwm_isr_on_wrap() {
   pwm_set_gpio_level(PICO_DEFAULT_LED_PIN, duty);
 }
 
-static PT_THREAD(pt_pwm(struct pt* pt)) {
-  PT_BEGIN(pt);
-
+void onboard_led_pwm_task(void* p) {
   gpio_set_function(PICO_DEFAULT_LED_PIN, GPIO_FUNC_PWM);
   gpio_set_drive_strength(PICO_DEFAULT_LED_PIN, GPIO_DRIVE_STRENGTH_12MA);
   gpio_set_slew_rate(PICO_DEFAULT_LED_PIN, GPIO_SLEW_RATE_FAST);
@@ -68,12 +65,10 @@ static PT_THREAD(pt_pwm(struct pt* pt)) {
 
   for (;;) tight_loop_contents();
 
-  PT_END(pt);
+  return std::unreachable();
 }
 
-static PT_THREAD(pt_onboard_ws2812(struct pt* pt)) {
-  PT_BEGIN(pt);
-
+void onboard_ws2812_task(void* p) {
   PIO pio = pio0;
   uint32_t state_machine = 0;
   uint32_t offset = pio_add_program(pio, &ws2812_program);
@@ -84,33 +79,21 @@ static PT_THREAD(pt_onboard_ws2812(struct pt* pt)) {
   for (uint8_t i = 0; true; i == UINT8_MAX ? i = 0 : i++) {
     uint32_t color = RGB8::rgb8_as_u32(RGB8::wheel(i).brightness(10));
     pio_sm_put_blocking(pio, state_machine, color << 8);
-    sleep_ms(8);
+    vTaskDelay(5);
   }
 
-  PT_END(pt);
+  return std::unreachable();
 }
 
-static PT_THREAD(pt_mfrc522_test(struct pt* pt)) {
-  PT_BEGIN(pt);
-
+void mfrc522_task(void* p) {
   MFRC522 device = MFRC522(PICO_DEFAULT_SPI_SCK_PIN, PICO_DEFAULT_SPI_TX_PIN, PICO_DEFAULT_SPI_RX_PIN, 25, 6, spi0);
 
-  sleep_ms(5000);
+  vTaskDelay(5000);
 
   if (device.self_test())
     printf("self test passed!\n");
   else
     printf("self test failed!\n");
-
-  PT_END(pt);
-}
-
-void core1_entry() {
-  // pt_add_thread(pt_mfrc522_test);
-  pt_add_thread(pt_pwm);
-  pt_schedule_start;
-
-  return std::unreachable();
 }
 
 int main() {
@@ -125,14 +108,16 @@ int main() {
   stdio_init_all();
   setup_default_uart();
 
-  PT_LOCK_INIT(lock_error, 31, UNLOCKED);
-  PT_LOCK_INIT(lock_delta, 30, UNLOCKED);
+  TaskHandle_t core0_handle, core1_handle;
 
-  multicore_reset_core1();
-  multicore_launch_core1(&core1_entry);
+  xTaskCreate(onboard_ws2812_task, "onboard_ws2812_task", 1024, NULL, 1, &core0_handle);
+  xTaskCreate(mfrc522_task, "mfrc522_task", 4096, NULL, 5, &core1_handle);
+  xTaskCreate(onboard_led_pwm_task, "onboard_led_pwm_task", 1024, NULL, 1, &core1_handle);
 
-  pt_add_thread(pt_onboard_ws2812);
-  pt_schedule_start;
+  vTaskCoreAffinitySet(core0_handle, (1 << 0));
+  vTaskCoreAffinitySet(core1_handle, (1 << 1));
+
+  vTaskStartScheduler();
 
   std::unreachable();
   return EXIT_FAILURE;

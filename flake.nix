@@ -23,10 +23,27 @@
           inherit (self'.packages) pico-sdk-full;
         };
 
-        shellHook = ''
-          export PICO_SDK_PATH=${self'.packages.pico-sdk-full}/lib/pico-sdk
-          export C_INCLUDE_PATH=${pkgs.gcc-arm-embedded}/arm-none-eabi/include:$C_INCLUDE_PATH
-        '';
+        shellHook =
+          let
+            FreeRTOS-Kernel-SMP-src = pkgs.fetchFromGitHub {
+              owner = "FreeRTOS";
+              repo = "FreeRTOS-Kernel";
+              rev = "570ade4001e50adbf06a074582ea993af562e0e1";
+              hash = "sha256-AxXsNpf6zzmkyY8AeCyN1HtHnSNz8JECljVURLEgUeY=";
+            };
+
+            pico-extras = pkgs.fetchFromGitHub {
+              owner = "raspberrypi";
+              repo = "pico-extras";
+              rev = "ed98c7acb694757715ede81c044a7404e1762499";
+              hash = "sha256-mnK8BhtqTOaFetk3H7HE7Z99wBrojulQd5m41UFJrLI=";
+            };
+          in ''
+            export PICO_SDK_PATH=${self'.packages.pico-sdk-full}/lib/pico-sdk
+            export PICO_EXTRAS_PATH=${pico-extras}
+            export FREERTOS_KERNEL_PATH=${FreeRTOS-Kernel-SMP-src}
+            export C_INCLUDE_PATH=${pkgs.gcc-arm-embedded}/arm-none-eabi/include:$C_INCLUDE_PATH
+          '';
       };
 
       packages = {

@@ -1,10 +1,12 @@
+#include "mfrc522.hh"
+
 #include <algorithm>
 #include <cstdio>
 #include <cstdlib>
+
 #include "hardware/spi.h"
 #include "pico/stdlib.h"
 #include "pico/time.h"
-#include "mfrc522.hh"
 
 MFRC522::MFRC522(uint8_t sck, uint8_t mosi, uint8_t miso, uint8_t cs, uint8_t rst, spi_inst_t* spi) {
   gpio_set_function(mosi, GPIO_FUNC_SPI);
@@ -44,7 +46,7 @@ MFRC522::~MFRC522() {
 inline void MFRC522::chip_select(bool value) { gpio_put(cs, value); }
 
 void MFRC522::write_register(Register reg, uint8_t byte) {
-  std::array<uint8_t, 2> data{{(uint8_t)(0xff & ((reg << 1)) & 0x7e), byte}};
+  std::array<uint8_t, 2> data{{(uint8_t)((reg << 1) & 0x7e), byte}};
 
   chip_select(false);
   spi_write_blocking(spi, data.data(), 2);
@@ -57,16 +59,17 @@ void MFRC522::write_register(Register reg, std::span<const uint8_t> bytes) {
 
 uint8_t MFRC522::read_register(Register reg) {
   std::array<uint8_t, 1> data;
+  uint8_t addr = ((reg << 1) & 0x7e) | 0x80;
 
   chip_select(false);
-  spi_write_blocking(spi, (uint8_t*)(0xff & (((reg << 1) & 0x7e) | 0x80)), 1);
+  spi_write_blocking(spi, &addr, 1);
   spi_read_blocking(spi, 0, data.data(), 1);
   chip_select(true);
 
   return data.at(0);
 }
 
-std::span<const uint8_t> MFRC522::read_register(Register reg, size_t size) {
+std::vector<uint8_t> MFRC522::read_register(Register reg, size_t size) {
   std::vector<uint8_t> data;
   for (size_t i = 0; i != size; i++) data.push_back(read_register(reg));
   return data;
@@ -98,7 +101,7 @@ bool MFRC522::self_test() {
   write_register(FIFOData, std::array<uint8_t, 25>{0});  // write 25 bytes of 00h to the fifo buffer
   write_register(Command, Mem);                          // transfer the contents of the fifo to the internal buffer
   write_register(AutoTest, 0x9);                         // enable self-test
-  write_register(FIFOData, 0x0);                         // write 00h to the fifo buffer
+  write_register(FIFOData, 0x0);                        // write 00h to the fifo buffer
   write_register(Command, CalcCRC);                      // initiate self-test
 
   size_t fifo_buf_size = read_register(FIFOLevel);
@@ -111,7 +114,7 @@ bool MFRC522::self_test() {
   write_register(Command, Idle);
 
   // read 64 bytes off the fifo buffer
-  std::span<const uint8_t> buf = read_register(FIFOData, 64);
+  std::vector<uint8_t> buf = read_register(FIFOData, 64);
 
   auto print_contents = [i = 0](const uint8_t& b) mutable {
     printf("%02Xh ", b);
@@ -120,12 +123,12 @@ bool MFRC522::self_test() {
   };
 
   printf("got: \n");
-  std::for_each(buf.begin(), buf.end(), print_contents);
+  std::for_each(buf.cbegin(), buf.cend(), print_contents);
   printf("\nexpected: \n");
   std::for_each(expected.cbegin(), expected.cend(), print_contents);
   printf("\n");
 
-  return std::equal(buf.begin(), buf.end(), expected.cbegin());
+  return std::equal(buf.cbegin(), buf.cend(), expected.cbegin());
 }
 
 void MFRC522::toggle_antenna(bool value) {
