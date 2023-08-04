@@ -1,6 +1,7 @@
 #pragma once
 
 #include <FreeRTOS.h>
+#include <croutine.h>
 #include <task.h>
 
 #include <cstdio>
@@ -10,8 +11,12 @@
 
 extern "C" {
 
-void vApplicationIdleHook(void) {
-  asm volatile("wfi");  // wait for interrupt
+#define coroutine_delay_ms(handle, ms) crDELAY(handle, ms);
+#define task_delay_ms(ms) vTaskDelay(pdMS_TO_TICKS(ms))
+
+void vApplicationIdleHook() {
+  vCoRoutineSchedule();
+  asm volatile("wfi");
 }
 
 void vApplicationStackOverflowHook(TaskHandle_t pxTask, char* pcTaskName) {
@@ -23,14 +28,12 @@ void vApplicationStackOverflowHook(TaskHandle_t pxTask, char* pcTaskName) {
   asm volatile("bkpt #0");
 
   for (;;) tight_loop_contents();
-  return std::unreachable();
 }
 
-void vApplicationMallocFailedHook(void) {
+void vApplicationMallocFailedHook() {
   taskDISABLE_INTERRUPTS();
   asm volatile("bkpt #0");
 
   for (;;) tight_loop_contents();
-  return std::unreachable();
 }
 }

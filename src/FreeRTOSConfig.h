@@ -53,7 +53,7 @@
 /* Synchronization Related */
 #define configUSE_MUTEXES 1
 #define configUSE_RECURSIVE_MUTEXES 1
-#define configUSE_APPLICATION_TASK_TAG 0
+#define configUSE_APPLICATION_TASK_TAG 1
 #define configUSE_COUNTING_SEMAPHORES 1
 #define configQUEUE_REGISTRY_SIZE 8
 #define configUSE_QUEUE_SETS 1
@@ -71,6 +71,7 @@
 #define configSUPPORT_DYNAMIC_ALLOCATION 1
 #define configTOTAL_HEAP_SIZE (128 * 1024)
 #define configAPPLICATION_ALLOCATED_HEAP 0
+#define configHEAP_CLEAR_MEMORY_ON_FREE 1
 
 /* Hook function related definitions. */
 #define configCHECK_FOR_STACK_OVERFLOW 1
@@ -83,7 +84,7 @@
 #define configUSE_STATS_FORMATTING_FUNCTIONS 0
 
 /* Co-routine related definitions. */
-#define configUSE_CO_ROUTINES 0
+#define configUSE_CO_ROUTINES 1
 #define configMAX_CO_ROUTINE_PRIORITIES 1
 
 /* Software timer related definitions. */
@@ -108,7 +109,7 @@
 /* RP2040 specific */
 #define configSUPPORT_PICO_SYNC_INTEROP 1
 #define configSUPPORT_PICO_TIME_INTEROP 1
-#define configCPU_CLOCK_HZ 273000000  // 133MHz for RP2040 (273MHz overclocked)
+#define configCPU_CLOCK_HZ 270000000  // 133MHz for RP2040 (273MHz overclocked, 18MHz underclocked)
 /* Use Pico SDK ISR handlers */
 #define vPortSVCHandler isr_svcall
 #define xPortPendSVHandler isr_pendsv

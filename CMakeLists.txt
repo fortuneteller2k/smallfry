@@ -31,22 +31,18 @@ target_sources(${PROJECT_NAME} PUBLIC
 pico_generate_pio_header(${PROJECT_NAME} ${CMAKE_CURRENT_LIST_DIR}/src/ws2812.pio)
 
 pico_enable_stdio_usb(${PROJECT_NAME} 1)
-pico_enable_stdio_uart(${PROJECT_NAME} 0)
+pico_enable_stdio_uart(${PROJECT_NAME} 1)
+
+target_compile_options(${PROJECT_NAME} PUBLIC -Ofast -ftree-vectorize)
 
 target_link_libraries(${PROJECT_NAME}
     pico_stdlib
-    pico_multicore
+    hardware_adc
     hardware_pio
     hardware_pwm
     hardware_spi
-    pico_bootsel_via_double_reset
     FreeRTOS-Kernel
     FreeRTOS-Kernel-Heap4
-)
-
-target_compile_definitions(${PROJECT_NAME} PRIVATE
-	PICO_BOOTSEL_VIA_DOUBLE_RESET_ACTIVITY_LED=13
-    PICO_BOOTSEL_VIA_DOUBLE_RESET_TIMEOUT_MS=300
 )
 
 target_include_directories(${PROJECT_NAME} PRIVATE
@@ -55,5 +51,3 @@ target_include_directories(${PROJECT_NAME} PRIVATE
 )
 
 pico_add_extra_outputs(${PROJECT_NAME})
-
-target_compile_options(${PROJECT_NAME} INTERFACE -Ofast -Wall -Wextra -Wpedantic -flto)

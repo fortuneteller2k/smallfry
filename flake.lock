@@ -1,5 +1,22 @@
 {
   "nodes": {
+    "freertos-smp-src": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1675377627,
+        "narHash": "sha256-AxXsNpf6zzmkyY8AeCyN1HtHnSNz8JECljVURLEgUeY=",
+        "owner": "FreeRTOS",
+        "repo": "FreeRTOS-Kernel",
+        "rev": "570ade4001e50adbf06a074582ea993af562e0e1",
+        "type": "github"
+      },
+      "original": {
+        "owner": "FreeRTOS",
+        "ref": "smp",
+        "repo": "FreeRTOS-Kernel",
+        "type": "github"
+      }
+    },
     "nixpkgs": {
       "locked": {
         "lastModified": 1689181110,
@@ -52,10 +69,47 @@
         "type": "github"
       }
     },
+    "pico-extras-src": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1686161103,
+        "narHash": "sha256-mnK8BhtqTOaFetk3H7HE7Z99wBrojulQd5m41UFJrLI=",
+        "owner": "raspberrypi",
+        "repo": "pico-extras",
+        "rev": "ed98c7acb694757715ede81c044a7404e1762499",
+        "type": "github"
+      },
+      "original": {
+        "owner": "raspberrypi",
+        "repo": "pico-extras",
+        "type": "github"
+      }
+    },
+    "pico-sdk-src": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1686695253,
+        "narHash": "sha256-GY5jjJzaENL3ftuU5KpEZAmEZgyFRtLwGVg3W1e/4Ho=",
+        "ref": "refs/heads/master",
+        "rev": "6a7db34ff63345a7badec79ebea3aaef1712f374",
+        "revCount": 741,
+        "submodules": true,
+        "type": "git",
+        "url": "https://github.com/raspberrypi/pico-sdk"
+      },
+      "original": {
+        "submodules": true,
+        "type": "git",
+        "url": "https://github.com/raspberrypi/pico-sdk"
+      }
+    },
     "root": {
       "inputs": {
+        "freertos-smp-src": "freertos-smp-src",
         "nixpkgs": "nixpkgs",
-        "parts": "parts"
+        "parts": "parts",
+        "pico-extras-src": "pico-extras-src",
+        "pico-sdk-src": "pico-sdk-src"
       }
     }
   },

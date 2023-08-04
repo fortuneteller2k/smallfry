@@ -10,6 +10,7 @@
 #include <utility>
 
 #include "boards/adafruit_feather_rp2040.h"
+#include "hardware/adc.h"
 #include "hardware/gpio.h"
 #include "hardware/irq.h"
 #include "hardware/pio.h"
@@ -27,8 +28,7 @@
 #include "rtos.hh"
 #include "ws2812.pio.h"
 
-#define OVERCLOCK_273_MHZ true
-#define UNDERCLOCK_18_MHZ false
+#define MFRC522_ENABLE false
 
 void pwm_isr_on_wrap() {
   pwm_clear_irq(pwm_gpio_to_slice_num(PICO_DEFAULT_LED_PIN));
@@ -58,7 +58,7 @@ void onboard_led_pwm_task(void*) {
 
   pwm_config config = pwm_get_default_config();
 
-  pwm_config_set_clkdiv(&config, 10.0);
+  pwm_config_set_clkdiv(&config, 5.0);
   pwm_init(pwm_slice, &config, true);
 
   for (;;) tight_loop_contents();
@@ -75,18 +75,39 @@ void onboard_ws2812_task(void*) {
   ws2812_program_init(pio, state_machine, offset, PICO_DEFAULT_WS2812_PIN, 800000, true);
 
   for (uint8_t i = 0; true; i == UINT8_MAX ? i = 0 : i++) {
-    uint32_t color = RGB8::rgb8_as_u32(RGB8::wheel(i).brightness(10));
+    uint32_t color = RGB8::rgb8_as_u32(RGB8::wheel(i).brightness(UINT8_MAX));
     pio_sm_put_blocking(pio, state_machine, color << 8);
-    vTaskDelay(5);
+    task_delay_ms(5);
   }
 
   return vTaskDelete(nullptr);
 }
 
+void onboard_temp_coroutine(CoRoutineHandle_t handle, UBaseType_t) {
+  crSTART(handle);
+
+  static double voltage, temp;
+
+  adc_init();
+  adc_set_temp_sensor_enabled(true);
+  adc_select_input(4);
+
+  for (;;) {
+    voltage = adc_read() * (3.3 / (1 << 12));
+    temp = 27 - (voltage - 0.706) / 0.001721;
+
+    printf("%.2f °C\n", temp);
+    coroutine_delay_ms(handle, 1000);
+  }
+
+  crEND();
+}
+
+#if MFRC522_ENABLE
 void mfrc522_task(void*) {
   MFRC522 device = MFRC522(PICO_DEFAULT_SPI_SCK_PIN, PICO_DEFAULT_SPI_TX_PIN, PICO_DEFAULT_SPI_RX_PIN, 25, 6, spi0);
 
-  vTaskDelay(5000);
+  task_delay_ms(5000);
 
   if (device.self_test())
     printf("self test passed!\n");
@@ -95,29 +116,29 @@ void mfrc522_task(void*) {
 
   return vTaskDelete(nullptr);
 }
+#endif
 
 int main() {
-#if OVERCLOCK_273_MHZ
   vreg_set_voltage(VREG_VOLTAGE_1_30);
-  set_sys_clock_khz(273000, true);
-#elif UNDERCLOCK_18_MHZ
-  vreg_set_voltage(VREG_VOLTAGE_0_90);
-  set_sys_clock_khz(18000, true);
-#endif
+  set_sys_clock_khz(configCPU_CLOCK_HZ / 1000, true);
+
   stdio_init_all();
 
-  TaskHandle_t core0_handle, core1_handle, all_core_handle;
+  TaskHandle_t core0, core1, all_cores;
 
-  xTaskCreate(onboard_ws2812_task, "onboard_ws2812_task", 1024, nullptr, 3, &all_core_handle);
-  xTaskCreate(mfrc522_task, "mfrc522_task", 4096, nullptr, 5, &core0_handle);
-  xTaskCreate(onboard_led_pwm_task, "onboard_led_pwm_task", 1024, nullptr, 1, &core1_handle);
+  xTaskCreate(onboard_ws2812_task, "onboard_ws2812_task", configMINIMAL_STACK_SIZE, nullptr, 1, &core0);
+  xTaskCreate(onboard_led_pwm_task, "onboard_led_pwm_task", configMINIMAL_STACK_SIZE, nullptr, 1, &core1);
+  xCoRoutineCreate(onboard_temp_coroutine, 0, 0);
 
-  vTaskCoreAffinitySet(core0_handle, (1 << 0));
-  vTaskCoreAffinitySet(core1_handle, (1 << 1));
-  vTaskCoreAffinitySet(all_core_handle, (1 << 0) | (1 << 1));
+#if MFRC522_ENABLE
+  xTaskCreate(mfrc522_task, "mfrc522_task", 4096, nullptr, 5, &core0);
+#endif
+
+  vTaskCoreAffinitySet(core0, (1 << 0));
+  vTaskCoreAffinitySet(core1, (1 << 1));
+  vTaskCoreAffinitySet(all_cores, (1 << 0) | (1 << 1));
 
   vTaskStartScheduler();
 
   std::unreachable();
-  return EXIT_FAILURE;
 }

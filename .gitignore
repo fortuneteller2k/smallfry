@@ -3,3 +3,5 @@
 .direnv
 .vscode
 build
+null.o
+.clangd
