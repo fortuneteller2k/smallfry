@@ -9,6 +9,7 @@
     freertos-smp-src = { url = "github:FreeRTOS/FreeRTOS-Kernel/smp"; flake = false; };
     pico-extras-src = { url = "github:raspberrypi/pico-extras"; flake = false; };
     pico-sdk-src = { type = "git"; url = "https://github.com/raspberrypi/pico-sdk"; submodules = true; flake = false; };
+    openocd-src = { type = "git"; url = "https://github.com/raspberrypi/openocd"; submodules = true; flake = false; };
   };
 
   outputs = inputs: inputs.parts.lib.mkFlake { inherit inputs; } {
@@ -25,7 +26,9 @@
             gcc-arm-embedded
             clang-tools_16;
 
-          inherit (self'.packages) pico-sdk-full;
+          inherit (self'.packages)
+            pico-sdk-full
+            openocd-rp2040;
         };
 
         env = {
@@ -60,6 +63,13 @@
       };
 
       packages = {
+        openocd-rp2040 = (pkgs.openocd.override {
+          extraHardwareSupport = [ "cmsis-dap" ];
+        }).overrideAttrs (old: {
+          src = inputs.openocd-src;
+          nativeBuildInputs = old.nativeBuildInputs ++ [ pkgs.autoreconfHook ];
+        });
+
         pico-sdk-full = pkgs.pico-sdk.overrideAttrs {
           version = "1.5.1";
           src = inputs.pico-sdk-src;

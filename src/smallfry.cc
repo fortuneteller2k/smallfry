@@ -30,6 +30,53 @@
 
 #define MFRC522_ENABLE false
 
+TaskHandle_t ws2812_handle, pwm_handle, button_handle;
+uint32_t ws2812_enable = true;
+
+void onboard_button_task(void*) {
+  gpio_init(4);
+  gpio_set_dir(4, GPIO_IN);
+  gpio_pull_up(4);
+
+  bool btn_last = gpio_get(4);
+
+  for (;;) {
+    bool btn_current = gpio_get(4);
+
+    if (!btn_current && btn_last) ws2812_enable = !ws2812_enable;
+
+    btn_last = btn_current;
+    xTaskNotify(ws2812_handle, ws2812_enable, eSetValueWithOverwrite);
+    task_delay_ms(5);
+  }
+
+  return vTaskDelete(nullptr);
+}
+
+void onboard_ws2812_task(void*) {
+  PIO pio = pio0;
+  uint32_t state_machine = 0;
+  uint32_t offset = pio_add_program(pio, &ws2812_program);
+
+  gpio_set_drive_strength(PICO_DEFAULT_WS2812_PIN, GPIO_DRIVE_STRENGTH_12MA);
+  ws2812_program_init(pio, state_machine, offset, PICO_DEFAULT_WS2812_PIN, 800000, true);
+
+  for (uint8_t i = 0; true; i == UINT8_MAX ? i = 0 : i++) {
+    if (xTaskNotifyWait(0, 0, &ws2812_enable, portMAX_DELAY)) {
+      uint32_t color = RGB8::rgb8_as_u32(RGB8::wheel(i).brightness(UINT8_MAX));
+
+      if (ws2812_enable)
+        pio_sm_put_blocking(pio, state_machine, color << 8);
+      else
+        pio_sm_put_blocking(pio, state_machine, 0);
+    }
+
+    task_delay_ms(10);
+  }
+
+  return vTaskDelete(nullptr);
+}
+
 void pwm_isr_on_wrap() {
   pwm_clear_irq(pwm_gpio_to_slice_num(PICO_DEFAULT_LED_PIN));
 
@@ -62,23 +109,6 @@ void onboard_led_pwm_task(void*) {
   pwm_init(pwm_slice, &config, true);
 
   for (;;) tight_loop_contents();
-
-  return vTaskDelete(nullptr);
-}
-
-void onboard_ws2812_task(void*) {
-  PIO pio = pio0;
-  uint32_t state_machine = 0;
-  uint32_t offset = pio_add_program(pio, &ws2812_program);
-
-  gpio_set_drive_strength(PICO_DEFAULT_WS2812_PIN, GPIO_DRIVE_STRENGTH_12MA);
-  ws2812_program_init(pio, state_machine, offset, PICO_DEFAULT_WS2812_PIN, 800000, true);
-
-  for (uint8_t i = 0; true; i == UINT8_MAX ? i = 0 : i++) {
-    uint32_t color = RGB8::rgb8_as_u32(RGB8::wheel(i).brightness(UINT8_MAX));
-    pio_sm_put_blocking(pio, state_machine, color << 8);
-    task_delay_ms(5);
-  }
 
   return vTaskDelete(nullptr);
 }
@@ -126,17 +156,18 @@ int main() {
 
   TaskHandle_t core0, core1, all_cores;
 
-  xTaskCreate(onboard_ws2812_task, "onboard_ws2812_task", configMINIMAL_STACK_SIZE, nullptr, 1, &core0);
-  xTaskCreate(onboard_led_pwm_task, "onboard_led_pwm_task", configMINIMAL_STACK_SIZE, nullptr, 1, &core1);
+  xTaskCreate(onboard_button_task, "onboard_button_task", configMINIMAL_STACK_SIZE, nullptr, 1, &button_handle);
+  xTaskCreate(onboard_ws2812_task, "onboard_ws2812_task", configMINIMAL_STACK_SIZE, nullptr, 1, &ws2812_handle);
+  xTaskCreate(onboard_led_pwm_task, "onboard_led_pwm_task", configMINIMAL_STACK_SIZE, nullptr, 1, &pwm_handle);
   xCoRoutineCreate(onboard_temp_coroutine, 0, 0);
 
 #if MFRC522_ENABLE
   xTaskCreate(mfrc522_task, "mfrc522_task", 4096, nullptr, 5, &core0);
 #endif
 
-  vTaskCoreAffinitySet(core0, (1 << 0));
-  vTaskCoreAffinitySet(core1, (1 << 1));
-  vTaskCoreAffinitySet(all_cores, (1 << 0) | (1 << 1));
+  vTaskCoreAffinitySet(pwm_handle, (1 << 0));
+  vTaskCoreAffinitySet(button_handle, (1 << 1));
+  vTaskCoreAffinitySet(ws2812_handle, (1 << 0) | (1 << 1));
 
   vTaskStartScheduler();
 

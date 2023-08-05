@@ -51,6 +51,24 @@
         "type": "github"
       }
     },
+    "openocd-src": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1688735225,
+        "narHash": "sha256-t4iFtJnHZ7EqRkiF6MPq4se07q/s90PdrMP25F6WfIg=",
+        "ref": "refs/heads/rp2040-v0.12.0",
+        "rev": "97d1e6e55f9a64dc439272d123e82c5fd655dbfc",
+        "revCount": 9909,
+        "submodules": true,
+        "type": "git",
+        "url": "https://github.com/raspberrypi/openocd"
+      },
+      "original": {
+        "submodules": true,
+        "type": "git",
+        "url": "https://github.com/raspberrypi/openocd"
+      }
+    },
     "parts": {
       "inputs": {
         "nixpkgs-lib": "nixpkgs-lib"
@@ -107,6 +125,7 @@
       "inputs": {
         "freertos-smp-src": "freertos-smp-src",
         "nixpkgs": "nixpkgs",
+        "openocd-src": "openocd-src",
         "parts": "parts",
         "pico-extras-src": "pico-extras-src",
         "pico-sdk-src": "pico-sdk-src"
